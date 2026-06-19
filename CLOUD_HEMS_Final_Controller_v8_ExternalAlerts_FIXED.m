@@ -47,7 +47,7 @@ USE_API_INPUT = false;   % false = CSV simulation, true = cloud/API placeholder
 % If the offline CSV does not contain real GridAvailable outage history,
 % enable this to test learned grid-risk behavior without using future leakage.
 SIMULATE_GRID_HISTORY_FOR_CLOUD_TEST = true;
-CLOUD_GRID_HISTORY_PATTERN = "4off_2on";   % "stable", "2off_2on", "mostly_available", "mostly_outage", "3off_1on", "4off_2on"
+CLOUD_GRID_HISTORY_PATTERN = "stable";   % "stable", "2off_2on", "mostly_available", "mostly_outage", "3off_1on", "4off_2on"
 
 % Main CSV for offline/cloud simulation.
 % Required columns:
@@ -177,15 +177,9 @@ P_transfer_max_kW = 4.0;
 % 3) READ INPUT DATA
 %% =========================================================
 
-if USE_API_INPUT
-    T = getLatestCloudDataPlaceholder();
-else
-    if ~isfile(inputFile)
-        error('Input file not found: %s', inputFile);
-    end
-    T = readtable(inputFile, 'VariableNamingRule','preserve');
-end
+inputFile = "https://raw.githubusercontent.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/main/Forecasts_3Months_PV_Load_DL_Test20.csv";
 
+T = readtable(inputFile, 'VariableNamingRule','preserve');
 % Time
 if isdatetime(T.Time)
     time = T.Time;

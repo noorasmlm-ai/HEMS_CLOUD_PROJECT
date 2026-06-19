@@ -1,0 +1,31 @@
+Metric,Value
+Load Energy (kWh),1691.69650416666
+PV Energy (kWh),1236.12924166667
+Grid-to-Load Energy (kWh),17.7725420314711
+Grid Charging Energy (kWh),525.13321911276
+Total Grid Import (kWh),542.905761144231
+Battery Charge Energy (kWh),289.092982670777
+Battery Discharge Energy (kWh),680.621269040473
+Load Shedding Energy (kWh),0
+Unserved Load Energy (kWh),0
+Served Load (%),100
+Final SOC (%),44.7275625790029
+Minimum SOC (%),44.1596972259376
+Maximum SOC (%),86.794582949616
+Fault Mode Samples,122
+Fault Mode Hours,10.2005555555556
+PV-Return Look-Ahead Active Samples,5171
+Grid Charge Suppressed by Look-Ahead Samples,5171
+Emergency Mode Samples,0
+Energy-Criticality Grid Risk Enabled,1
+Criticality Percentile,95
+Criticality Max Weight,2.5
+Trend Detection Enabled,1
+Trend Increase Factor,1.5
+Recovery Bonus Enabled,1
+Recovery Stable Hours,12
+SOC Warning Samples,0
+SOC Critical Samples,0
+SOC Emergency Samples,0
+Any Fault Alert Samples,122
+Average Grid Risk Level,1

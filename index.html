@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cloud HEMS Application</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,7 +14,12 @@
     }
 
     h1 {
-      color: #0b3d91;
+      color: #234f9c;
+      margin-bottom: 25px;
+    }
+
+    h2 {
+      color: #333;
     }
 
     .card {
@@ -28,12 +35,37 @@
       border: 1px solid #ddd;
       border-radius: 8px;
       margin-top: 10px;
+      background: white;
     }
 
     a {
-      color: #0b3d91;
+      color: #234f9c;
       font-weight: bold;
       text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .button-link {
+      display: inline-block;
+      margin: 6px 8px 6px 0;
+      padding: 10px 14px;
+      background: #234f9c;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .button-link:hover {
+      background: #17376f;
+      text-decoration: none;
+    }
+
+    .note {
+      color: #555;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -54,21 +86,54 @@
   <div class="card">
     <h2>Cloud Execution</h2>
     <p>
-      The MATLAB controller is executed on GitHub Actions cloud runner.
-      The generated decisions, summary files, and figures are updated automatically.
+      The MATLAB controller is executed on a GitHub Actions cloud runner.
+      The generated EMS decisions, summary files, and figures are updated automatically
+      inside the GitHub repository.
     </p>
+
+    <a class="button-link" href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/actions" target="_blank">
+      Open GitHub Actions
+    </a>
+
+    <a class="button-link" href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT" target="_blank">
+      Open GitHub Repository
+    </a>
   </div>
 
   <div class="card">
     <h2>Input and Controller Files</h2>
-    <p><a href="Forecasts_3Months_PV_Load_DL_Test20.csv" target="_blank">Open Forecasting CSV File</a></p>
-    <p><a href="CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED.m" target="_blank">Open MATLAB HEMS Controller</a></p>
+
+    <p>
+      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/Forecasts_3Months_PV_Load_DL_Test20.csv" target="_blank">
+        Open Forecasting CSV File
+      </a>
+    </p>
+
+    <p>
+      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED.m" target="_blank">
+        Open MATLAB HEMS Controller
+      </a>
+    </p>
+
+    <p class="note">
+      These links open the files inside GitHub instead of downloading them directly.
+    </p>
   </div>
 
   <div class="card">
     <h2>EMS Output Files</h2>
-    <p><a href="CLOUD_HEMS_Decisions.csv" target="_blank">Open EMS Decisions CSV</a></p>
-    <p><a href="CLOUD_HEMS_Summary.csv" target="_blank">Open EMS Summary CSV</a></p>
+
+    <p>
+      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Decisions.csv" target="_blank">
+        Open EMS Decisions CSV
+      </a>
+    </p>
+
+    <p>
+      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Summary.csv" target="_blank">
+        Open EMS Summary CSV
+      </a>
+    </p>
   </div>
 
   <div class="card">

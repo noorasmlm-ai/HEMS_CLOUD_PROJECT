@@ -1,0 +1,34 @@
+name: Run Cloud HEMS MATLAB Controller
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  run-hems:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v3
+
+      - name: Run HEMS controller
+        uses: matlab-actions/run-command@v3
+        with:
+          command: CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED
+
+      - name: Commit generated outputs
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add CLOUD_HEMS_Decisions.csv CLOUD_HEMS_Summary.csv Fig_CLOUD_HEMS_SOC.png Fig_CLOUD_HEMS_PowerBalance.png Fig_CLOUD_HEMS_RiskFaultFlags.png
+          git commit -m "Update cloud HEMS outputs" || echo "No changes to commit"
+          git push

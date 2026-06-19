@@ -63,9 +63,43 @@
       text-decoration: none;
     }
 
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 14px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #e8eef8;
+      color: #222;
+    }
+
+    .table-box {
+      overflow-x: auto;
+      max-height: 420px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
     .note {
       color: #555;
       font-size: 14px;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #234f9c;
     }
   </style>
 </head>
@@ -101,39 +135,33 @@
   </div>
 
   <div class="card">
-    <h2>Input and Controller Files</h2>
-
-    <p>
-      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/Forecasts_3Months_PV_Load_DL_Test20.csv" target="_blank">
-        Open Forecasting CSV File
-      </a>
-    </p>
-
+    <h2>MATLAB Controller</h2>
     <p>
       <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED.m" target="_blank">
-        Open MATLAB HEMS Controller
+        View MATLAB HEMS Controller on GitHub
       </a>
-    </p>
-
-    <p class="note">
-      These links open the files inside GitHub instead of downloading them directly.
     </p>
   </div>
 
   <div class="card">
-    <h2>EMS Output Files</h2>
-
-    <p>
-      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Decisions.csv" target="_blank">
-        Open EMS Decisions CSV
-      </a>
+    <h2>Forecasting Input Data Preview</h2>
+    <p class="note">
+      The forecasting CSV file is displayed directly inside the dashboard to avoid browser download behavior.
     </p>
+    <p id="forecastStatus" class="status">Loading forecasting data...</p>
+    <div class="table-box" id="forecastTable"></div>
+  </div>
 
-    <p>
-      <a href="https://github.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/blob/main/CLOUD_HEMS_Summary.csv" target="_blank">
-        Open EMS Summary CSV
-      </a>
-    </p>
+  <div class="card">
+    <h2>EMS Decisions Output Preview</h2>
+    <p id="decisionStatus" class="status">Loading EMS decisions...</p>
+    <div class="table-box" id="decisionTable"></div>
+  </div>
+
+  <div class="card">
+    <h2>EMS Summary Output Preview</h2>
+    <p id="summaryStatus" class="status">Loading EMS summary...</p>
+    <div class="table-box" id="summaryTable"></div>
   </div>
 
   <div class="card">
@@ -150,6 +178,125 @@
     <h2>Risk and Fault Flags</h2>
     <img src="Fig_CLOUD_HEMS_RiskFaultFlags.png" alt="Risk and Fault Flags">
   </div>
+
+  <script>
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let insideQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"' && insideQuotes && nextChar === '"') {
+          cell += '"';
+          i++;
+        } else if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === "," && !insideQuotes) {
+          row.push(cell);
+          cell = "";
+        } else if ((char === "\n" || char === "\r") && !insideQuotes) {
+          if (cell.length > 0 || row.length > 0) {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+          }
+          if (char === "\r" && nextChar === "\n") {
+            i++;
+          }
+        } else {
+          cell += char;
+        }
+      }
+
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function makeTable(rows, maxRows = 20) {
+      if (!rows || rows.length === 0) {
+        return "<p>No data available.</p>";
+      }
+
+      const header = rows[0];
+      const body = rows.slice(1, maxRows + 1);
+
+      let html = "<table><thead><tr>";
+      header.forEach(col => {
+        html += "<th>" + escapeHTML(col) + "</th>";
+      });
+      html += "</tr></thead><tbody>";
+
+      body.forEach(r => {
+        html += "<tr>";
+        header.forEach((_, i) => {
+          html += "<td>" + escapeHTML(r[i] || "") + "</td>";
+        });
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      html += "<p class='note'>Showing first " + body.length + " rows only.</p>";
+      return html;
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function loadCSV(fileUrl, tableId, statusId, label) {
+      try {
+        const response = await fetch(fileUrl);
+        if (!response.ok) {
+          throw new Error("File could not be loaded.");
+        }
+
+        const text = await response.text();
+        const rows = parseCSV(text);
+
+        document.getElementById(tableId).innerHTML = makeTable(rows, 20);
+        document.getElementById(statusId).innerText = label + " loaded successfully.";
+      } catch (error) {
+        document.getElementById(statusId).innerText = "Could not load " + label + ".";
+        document.getElementById(tableId).innerHTML =
+          "<p>Please check that the file exists in the GitHub repository.</p>";
+      }
+    }
+
+    loadCSV(
+      "Forecasts_3Months_PV_Load_DL_Test20.csv",
+      "forecastTable",
+      "forecastStatus",
+      "Forecasting data"
+    );
+
+    loadCSV(
+      "CLOUD_HEMS_Decisions.csv",
+      "decisionTable",
+      "decisionStatus",
+      "EMS decisions"
+    );
+
+    loadCSV(
+      "CLOUD_HEMS_Summary.csv",
+      "summaryTable",
+      "summaryStatus",
+      "EMS summary"
+    );
+  </script>
 
 </body>
 </html>

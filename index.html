@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud HEMS Application</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    h1 {
+      color: #0b3d91;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    img {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    a {
+      color: #0b3d91;
+      font-weight: bold;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Cloud-Based Residential HEMS Application</h1>
+
+  <div class="card">
+    <h2>Project Overview</h2>
+    <p>
+      This cloud-based Home Energy Management System executes the MATLAB HEMS controller
+      through GitHub Actions, reads forecasting data from the cloud, and displays the
+      generated EMS results through this web dashboard.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Cloud Execution</h2>
+    <p>
+      The MATLAB controller is executed on GitHub Actions cloud runner.
+      The generated decisions, summary files, and figures are updated automatically.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Input and Controller Files</h2>
+    <p><a href="Forecasts_3Months_PV_Load_DL_Test20.csv" target="_blank">Open Forecasting CSV File</a></p>
+    <p><a href="CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED.m" target="_blank">Open MATLAB HEMS Controller</a></p>
+  </div>
+
+  <div class="card">
+    <h2>EMS Output Files</h2>
+    <p><a href="CLOUD_HEMS_Decisions.csv" target="_blank">Open EMS Decisions CSV</a></p>
+    <p><a href="CLOUD_HEMS_Summary.csv" target="_blank">Open EMS Summary CSV</a></p>
+  </div>
+
+  <div class="card">
+    <h2>Battery SOC Profile</h2>
+    <img src="Fig_CLOUD_HEMS_SOC.png" alt="Battery SOC Profile">
+  </div>
+
+  <div class="card">
+    <h2>Power Balance</h2>
+    <img src="Fig_CLOUD_HEMS_PowerBalance.png" alt="Power Balance">
+  </div>
+
+  <div class="card">
+    <h2>Risk and Fault Flags</h2>
+    <img src="Fig_CLOUD_HEMS_RiskFaultFlags.png" alt="Risk and Fault Flags">
+  </div>
+
+</body>
+</html>

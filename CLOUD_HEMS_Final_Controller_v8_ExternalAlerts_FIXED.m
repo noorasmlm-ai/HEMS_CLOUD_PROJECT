@@ -23,6 +23,8 @@ rng(1);
 % Main outputs:
 %   CLOUD_HEMS_Decisions.csv
 %   CLOUD_HEMS_Summary.csv
+%   Cloud_EMS_Controller_Latency_Log.csv
+%   Cloud_EMS_Controller_Latency_Summary.csv
 %   Fig_CLOUD_HEMS_SOC.png
 %   Fig_CLOUD_HEMS_PowerBalance.png
 %   Fig_CLOUD_HEMS_RiskFaultFlags.png
@@ -88,6 +90,23 @@ outputFolder = pwd;
 
 decisionFile = fullfile(outputFolder, 'CLOUD_HEMS_Decisions.csv');
 summaryFile  = fullfile(outputFolder, 'CLOUD_HEMS_Summary.csv');
+
+latencyLogFile     = fullfile(outputFolder, 'Cloud_EMS_Controller_Latency_Log.csv');
+latencySummaryFile = fullfile(outputFolder, 'Cloud_EMS_Controller_Latency_Summary.csv');
+
+% Total script timer for controller computational-latency reporting.
+% This measures controller execution latency only; it does NOT measure
+% inverter-to-cloud wireless/network latency.
+latencyTotalScriptTimer = tic;
+Latency_InputRead_ms = NaN;
+Latency_GridRisk_ms = NaN;
+Latency_FaultDetection_ms = NaN;
+Latency_DailyForecastTargets_ms = NaN;
+Latency_EMSControlLoop_Total_ms = NaN;
+Latency_AlertGeneration_Total_ms = NaN;
+Latency_ExternalAlertDispatch_ms = NaN;
+Latency_OutputWriting_ms = NaN;
+Latency_FigureGeneration_ms = NaN;
 
 %% =========================================================
 % 2) SYSTEM PARAMETERS
@@ -177,6 +196,8 @@ P_transfer_max_kW = 4.0;
 % 3) READ INPUT DATA
 %% =========================================================
 
+latencyInputReadTimer = tic;
+
 inputFile = "https://raw.githubusercontent.com/noorasmlm-ai/HEMS_CLOUD_PROJECT/main/Forecasts_3Months_PV_Load_DL_Test20.csv";
 
 T = readtable(inputFile, 'VariableNamingRule','preserve');
@@ -224,9 +245,14 @@ fprintf('Start  : %s\n', string(time(1)));
 fprintf('End    : %s\n', string(time(end)));
 fprintf('dt     : %.4f h\n', dt_hours);
 
+Latency_InputRead_ms = toc(latencyInputReadTimer) * 1000;
+SamplingInterval_ms = dt_hours * 3600 * 1000;
+
 %% =========================================================
 % 4) LEARNED GRID RISK, NO-LEAKAGE DAILY METHOD
 %% =========================================================
+
+latencyGridRiskTimer = tic;
 
 dateOnly = dateshift(time, 'start', 'day');
 uniqueDays = unique(dateOnly);
@@ -329,9 +355,13 @@ for d = 1:D
     GridRiskLevel(dateOnly == uniqueDays(d)) = DailyGridRisk(d);
 end
 
+Latency_GridRisk_ms = toc(latencyGridRiskTimer) * 1000;
+
 %% =========================================================
 % 5) CLOUD-LIGHT FAULT DETECTION
 %% =========================================================
+
+latencyFaultDetectionTimer = tic;
 
 LoadResidual_kW = abs(Load_kW - Load_pred_kW);
 PVResidual_kW   = abs(PV_kW - PV_pred_kW);
@@ -405,9 +435,13 @@ DetectedFaultType(F4_Inverter_Detected) = "F4_Inverter_Derating";
 DetectedFaultType(F5_BatteryCapacity_Detected) = "F5_Battery_Capacity_Reduction";
 DetectedFaultType(F6_Comm_Detected) = "F6_Communication_Delay_Freeze";
 
+Latency_FaultDetection_ms = toc(latencyFaultDetectionTimer) * 1000;
+
 %% =========================================================
 % 6) DAILY FORECAST TARGETS
 %% =========================================================
+
+latencyDailyTargetsTimer = tic;
 
 DailyForecastDeficit_kWh = zeros(D,1);
 DailySOCTarget_percent = zeros(D,1);
@@ -443,6 +477,8 @@ SOCTargetBase_percent = zeros(N,1);
 for d = 1:D
     SOCTargetBase_percent(dateOnly == uniqueDays(d)) = DailySOCTarget_percent(d);
 end
+
+Latency_DailyForecastTargets_ms = toc(latencyDailyTargetsTimer) * 1000;
 
 %% =========================================================
 % 7) FINAL CLOUD EMS CONTROL LOOP
@@ -485,7 +521,14 @@ EMS_Alert_Message(:) = "Normal operation";
 P_transfer_to_slave_sent_kW = zeros(N,1);
 P_transfer_to_slave_delivered_kW = zeros(N,1);
 
+% Per-decision computational latency for the EMS control loop.
+% This is compared with the 5-minute sampling interval.
+Latency_EMSDecision_ms = zeros(N,1);
+latencyEMSLoopTimer = tic;
+
 for t = 1:N
+
+    latencyEMSCycleTimer = tic;
 
     capFactor = max(0.50, min(BatteryCapacityFactor(t), 1.00));
     E_batt_max_physical = E_batt_nominal_kWh * capFactor;
@@ -677,7 +720,11 @@ for t = 1:N
 
     SOC_percent(t) = 100 * E_batt_kWh / max(E_batt_max_physical, eps);
     SOC_percent(t) = max(0, min(100, SOC_percent(t)));
+
+    Latency_EMSDecision_ms(t) = toc(latencyEMSCycleTimer) * 1000;
 end
+
+Latency_EMSControlLoop_Total_ms = toc(latencyEMSLoopTimer) * 1000;
 
 %% =========================================================
 % 8) INTERNAL SOC AND FAULT ALERT GENERATION
@@ -688,7 +735,12 @@ end
 % External notifications (Telegram / Email) are dispatched in Section 8B
 % when ENABLE_TELEGRAM or ENABLE_EMAIL are set to true.
 
+Latency_AlertGeneration_ms = zeros(N,1);
+latencyAlertGenerationTimer = tic;
+
 for t = 1:N
+
+    latencyAlertCycleTimer = tic;
     % SOC alert level
     if EmergencyMode(t)
         SOC_Alert_Level(t) = "Emergency";
@@ -728,7 +780,11 @@ for t = 1:N
     else
         EMS_Alert_Message(t) = "SOC " + SOC_Alert_Level(t) + " + Fault alert: " + Fault_Alert_Type(t);
     end
+
+    Latency_AlertGeneration_ms(t) = toc(latencyAlertCycleTimer) * 1000;
 end
+
+Latency_AlertGeneration_Total_ms = toc(latencyAlertGenerationTimer) * 1000;
 
 %% =========================================================
 % 8B) EXTERNAL NOTIFICATION DISPATCH (TELEGRAM + EMAIL)
@@ -736,6 +792,8 @@ end
 % Scans the generated alert timeline and sends external notifications
 % for the first occurrence of each new alert type, subject to cooldown.
 % This section is skipped automatically when both flags are false.
+
+latencyExternalAlertDispatchTimer = tic;
 
 if ENABLE_TELEGRAM || ENABLE_EMAIL
 
@@ -793,9 +851,13 @@ else
     fprintf('[Alerts] Internal alert fields saved to Decisions CSV.\n');
 end
 
+Latency_ExternalAlertDispatch_ms = toc(latencyExternalAlertDispatchTimer) * 1000;
+
 %% =========================================================
 % 9) SAVE DECISIONS AND SUMMARY
 %% =========================================================
+
+latencyOutputWritingTimer = tic;
 
 TotalGridImport_kW = P_grid_to_load_kW + P_grid_charge_kW;
 
@@ -915,6 +977,8 @@ Summary.Properties.Description = sprintf('Cloud grid-history pattern: %s | Adapt
 
 writetable(Summary, summaryFile);
 
+Latency_OutputWriting_ms = toc(latencyOutputWritingTimer) * 1000;
+
 disp(' ');
 disp('================ CLOUD HEMS SUMMARY ================');
 disp(Summary);
@@ -927,6 +991,8 @@ fprintf('  %s\n', summaryFile);
 %% =========================================================
 % 10) FIGURES
 %% =========================================================
+
+latencyFigureGenerationTimer = tic;
 
 figure('Position',[100 100 1200 600]);
 plot(time, SOC_percent, 'LineWidth', 1.4); hold on;
@@ -968,6 +1034,104 @@ fprintf('\nSaved figures in folder:\n');
 fprintf('  %s\n', fullfile(outputFolder, 'Fig_CLOUD_HEMS_SOC.png'));
 fprintf('  %s\n', fullfile(outputFolder, 'Fig_CLOUD_HEMS_PowerBalance.png'));
 fprintf('  %s\n', fullfile(outputFolder, 'Fig_CLOUD_HEMS_RiskFaultFlags.png'));
+
+Latency_FigureGeneration_ms = toc(latencyFigureGenerationTimer) * 1000;
+Latency_TotalScript_ms = toc(latencyTotalScriptTimer) * 1000;
+
+%% =========================================================
+% 11) CONTROLLER EXECUTION LATENCY RESULTS
+%% =========================================================
+% These results measure MATLAB controller computational latency only.
+% They do not measure inverter-to-cloud wireless/network latency.
+
+Latency_Log = table( ...
+    (1:N)', time, ...
+    Latency_EMSDecision_ms, Latency_AlertGeneration_ms, ...
+    repmat(SamplingInterval_ms, N, 1), ...
+    'VariableNames', {'Step','Time','EMSDecision_ms','AlertGeneration_ms','SamplingInterval_ms'});
+
+writetable(Latency_Log, latencyLogFile);
+
+meanEMS_ms   = mean(Latency_EMSDecision_ms);
+medianEMS_ms = median(Latency_EMSDecision_ms);
+p95EMS_ms    = prctile(Latency_EMSDecision_ms, 95);
+maxEMS_ms    = max(Latency_EMSDecision_ms);
+utilEMS_pct  = 100 * maxEMS_ms / max(SamplingInterval_ms, eps);
+
+meanAlert_ms   = mean(Latency_AlertGeneration_ms);
+medianAlert_ms = median(Latency_AlertGeneration_ms);
+p95Alert_ms    = prctile(Latency_AlertGeneration_ms, 95);
+maxAlert_ms    = max(Latency_AlertGeneration_ms);
+
+realtimeStatus = "Pass";
+if maxEMS_ms > SamplingInterval_ms
+    realtimeStatus = "Fail";
+end
+
+LatencyMetric = [ ...
+    "Input reading latency";
+    "Grid-risk estimation latency";
+    "Fault detection latency";
+    "Daily forecast target latency";
+    "EMS control loop total latency";
+    "Mean EMS decision latency per 5-min step";
+    "Median EMS decision latency per 5-min step";
+    "95th percentile EMS decision latency per 5-min step";
+    "Maximum EMS decision latency per 5-min step";
+    "Mean alert generation latency per 5-min step";
+    "Median alert generation latency per 5-min step";
+    "95th percentile alert generation latency per 5-min step";
+    "Maximum alert generation latency per 5-min step";
+    "External alert dispatch section latency";
+    "Output writing latency";
+    "Figure generation latency";
+    "Total script execution latency";
+    "Sampling interval";
+    "Maximum EMS decision latency utilisation";
+    "Real-time feasibility compared with 5-min sampling" ...
+];
+
+LatencyValue = [ ...
+    string(sprintf('%.3f', Latency_InputRead_ms));
+    string(sprintf('%.3f', Latency_GridRisk_ms));
+    string(sprintf('%.3f', Latency_FaultDetection_ms));
+    string(sprintf('%.3f', Latency_DailyForecastTargets_ms));
+    string(sprintf('%.3f', Latency_EMSControlLoop_Total_ms));
+    string(sprintf('%.3f', meanEMS_ms));
+    string(sprintf('%.3f', medianEMS_ms));
+    string(sprintf('%.3f', p95EMS_ms));
+    string(sprintf('%.3f', maxEMS_ms));
+    string(sprintf('%.3f', meanAlert_ms));
+    string(sprintf('%.3f', medianAlert_ms));
+    string(sprintf('%.3f', p95Alert_ms));
+    string(sprintf('%.3f', maxAlert_ms));
+    string(sprintf('%.3f', Latency_ExternalAlertDispatch_ms));
+    string(sprintf('%.3f', Latency_OutputWriting_ms));
+    string(sprintf('%.3f', Latency_FigureGeneration_ms));
+    string(sprintf('%.3f', Latency_TotalScript_ms));
+    string(sprintf('%.3f', SamplingInterval_ms));
+    string(sprintf('%.6f', utilEMS_pct));
+    realtimeStatus ...
+];
+
+LatencyUnit = [ ...
+    "ms"; "ms"; "ms"; "ms"; "ms";
+    "ms"; "ms"; "ms"; "ms";
+    "ms"; "ms"; "ms"; "ms";
+    "ms"; "ms"; "ms"; "ms";
+    "ms"; "%"; "Pass/Fail" ...
+];
+
+Latency_Summary = table(LatencyMetric, LatencyValue, LatencyUnit);
+writetable(Latency_Summary, latencySummaryFile);
+
+disp(' ');
+disp('================ CONTROLLER LATENCY SUMMARY ================');
+disp(Latency_Summary);
+
+fprintf('\nSaved controller latency outputs:\n');
+fprintf('  %s\n', latencyLogFile);
+fprintf('  %s\n', latencySummaryFile);
 
 %% =========================================================
 % LOCAL FUNCTIONS
@@ -1210,3 +1374,5 @@ function [slaveDemand_kW, slaveSOC_percent] = getSlaveDemandOptional(T, t)
         end
     end
 end
+
+

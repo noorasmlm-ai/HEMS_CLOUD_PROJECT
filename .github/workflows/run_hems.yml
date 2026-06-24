@@ -24,7 +24,19 @@ jobs:
         uses: matlab-actions/run-command@v3
         with:
           command: CLOUD_HEMS_Final_Controller_v8_ExternalAlerts_FIXED
-
+      - name: Upload HEMS results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-hems-results
+          if-no-files-found: warn
+          path: |
+            CLOUD_HEMS_Decisions.csv
+            CLOUD_HEMS_Summary.csv
+            Cloud_EMS_Controller_Latency_Log.csv
+            Cloud_EMS_Controller_Latency_Summary.csv
+            Fig_CLOUD_HEMS_SOC.png
+            Fig_CLOUD_HEMS_PowerBalance.png
+            Fig_CLOUD_HEMS_RiskFaultFlags.png
       - name: Commit generated outputs
         run: |
           git config --global user.name "github-actions"
